@@ -89,7 +89,7 @@ class Retinaface(object):
         #   是否使用Cuda
         #   没有GPU可以设置成False
         #--------------------------------#
-        "cuda"                  : True
+        "cuda"                  : False
     }
 
     @classmethod
@@ -270,6 +270,96 @@ class Retinaface(object):
         np.save("model_data/{backbone}_face_encoding.npy".format(backbone=self.facenet_backbone),face_encodings)
         np.save("model_data/{backbone}_names.npy".format(backbone=self.facenet_backbone),names)
 
+
+    def face_detect(self, image):
+        """人脸检测
+        
+        输入numpy图片数据, 返回人脸检测bbox
+        
+        """
+        #---------------------------------------------------#
+        #   Retinaface检测部分-开始
+        #---------------------------------------------------#
+        #---------------------------------------------------#
+        #   计算输入图片的高和宽
+        #---------------------------------------------------#
+        im_height, im_width, _ = np.shape(image)
+        #---------------------------------------------------#
+        #   计算scale，用于将获得的预测框转换成原图的高宽
+        #---------------------------------------------------#
+        scale = [
+            np.shape(image)[1], np.shape(image)[0], np.shape(image)[1], np.shape(image)[0]
+        ]
+        scale_for_landmarks = [
+            np.shape(image)[1], np.shape(image)[0], np.shape(image)[1], np.shape(image)[0],
+            np.shape(image)[1], np.shape(image)[0], np.shape(image)[1], np.shape(image)[0],
+            np.shape(image)[1], np.shape(image)[0]
+        ]
+
+        #---------------------------------------------------------#
+        #   letterbox_image可以给图像增加灰条，实现不失真的resize
+        #---------------------------------------------------------#
+        if self.letterbox_image:
+            image = letterbox_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]])
+            anchors = self.anchors
+        else:
+            anchors = Anchors(self.cfg, image_size=(im_height, im_width)).get_anchors()
+
+        #---------------------------------------------------#
+        #   将处理完的图片传入Retinaface网络当中进行预测
+        #---------------------------------------------------#
+        with torch.no_grad():
+            #-----------------------------------------------------------#
+            #   图片预处理，归一化。
+            #-----------------------------------------------------------#
+            image = torch.from_numpy(preprocess_input(image).transpose(2, 0, 1)).unsqueeze(0).type(torch.FloatTensor)
+
+            if self.cuda:
+                anchors = anchors.cuda()
+                image   = image.cuda()
+
+            #---------------------------------------------------------#
+            #   传入网络进行预测
+            #---------------------------------------------------------#
+            loc, conf, landms = self.net(image)
+            #---------------------------------------------------#
+            #   Retinaface网络的解码，最终我们会获得预测框
+            #   将预测结果进行解码和非极大抑制
+            #---------------------------------------------------#
+            boxes   = decode(loc.data.squeeze(0), anchors, self.cfg['variance'])
+
+            conf    = conf.data.squeeze(0)[:, 1:2]
+            
+            landms  = decode_landm(landms.data.squeeze(0), anchors, self.cfg['variance'])
+            
+            #-----------------------------------------------------------#
+            #   对人脸检测结果进行堆叠
+            #-----------------------------------------------------------#
+            boxes_conf_landms = torch.cat([boxes, conf, landms], -1)
+            boxes_conf_landms = non_max_suppression(boxes_conf_landms, self.confidence)
+        
+            #---------------------------------------------------#
+            #   如果没有预测框则返回None
+            #---------------------------------------------------#
+            if len(boxes_conf_landms) <= 0:
+                return boxes_conf_landms
+
+            #---------------------------------------------------------#
+            #   如果使用了letterbox_image的话，要把灰条的部分去除掉。
+            #---------------------------------------------------------#
+            if self.letterbox_image:
+                boxes_conf_landms = retinaface_correct_boxes(boxes_conf_landms, \
+                    np.array([self.retinaface_input_shape[0], self.retinaface_input_shape[1]]), np.array([im_height, im_width]))
+
+            boxes_conf_landms[:, :4] = boxes_conf_landms[:, :4] * scale
+            boxes_conf_landms[:, 5:] = boxes_conf_landms[:, 5:] * scale_for_landmarks
+
+        #---------------------------------------------------#
+        #   Retinaface检测部分-结束
+        #---------------------------------------------------#
+        return boxes_conf_landms
+        
+        
     #---------------------------------------------------#
     #   检测图片
     #---------------------------------------------------#
