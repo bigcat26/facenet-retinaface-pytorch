@@ -270,13 +270,31 @@ class Retinaface(object):
         np.save("model_data/{backbone}_face_encoding.npy".format(backbone=self.facenet_backbone),face_encodings)
         np.save("model_data/{backbone}_names.npy".format(backbone=self.facenet_backbone),names)
 
+    def face_feature(self, image):
+        """计算人脸图特征值
+        
+        image: 经过对齐的numpy人脸图
+        
+        返回128长度特征值向量
+        """
+        image = np.array(letterbox_image(np.uint8(image),(self.facenet_input_shape[1],self.facenet_input_shape[0])))/255
+        image = np.expand_dims(image.transpose(2, 0, 1),0)
+        with torch.no_grad():
+            image = torch.from_numpy(image).type(torch.FloatTensor)
+            if self.cuda:
+                image = image.cuda()
+
+            #-----------------------------------------------#
+            #   利用facenet_model计算长度为128特征向量
+            #-----------------------------------------------#
+            return self.facenet(image)[0].cpu().numpy()
 
     def face_detect(self, image):
         """人脸检测
         
         image: numpy图片数据
         
-        返回人脸检测结果(数量, [bbox x 4, conf x 1, landmark x 10])
+        返回检测结果: (人脸数量, [bbox x 4, conf x 1, landmark x 10])
         
         """
         #---------------------------------------------------#

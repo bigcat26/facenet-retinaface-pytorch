@@ -26,11 +26,11 @@ def preprocess_input(image):
 #---------------------------------#
 #   计算人脸距离
 #---------------------------------#
-def face_distance(face_encodings, face_to_compare):
+def face_distance(face_encodings, face_to_compare, axis=1):
     if len(face_encodings) == 0:
         return np.empty((0))
     # (n, )
-    return np.linalg.norm(face_encodings - face_to_compare, axis=1)
+    return np.linalg.norm(face_encodings - face_to_compare, axis=axis)
 
 #---------------------------------#
 #   比较人脸
