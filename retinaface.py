@@ -274,7 +274,9 @@ class Retinaface(object):
     def face_detect(self, image):
         """人脸检测
         
-        输入numpy图片数据, 返回人脸检测bbox
+        image: numpy图片数据
+        
+        返回人脸检测结果(数量, [bbox x 4, conf x 1, landmark x 10])
         
         """
         #---------------------------------------------------#
