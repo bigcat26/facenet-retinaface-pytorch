@@ -73,3 +73,7 @@ def Alignment_1(img,landmark):
     new_landmark = np.array(new_landmark)
 
     return new_img, new_landmark
+
+def crop_npimage(img, xywh):
+    """裁剪图像"""
+    return np.array(img)[int(xywh[1]):int(xywh[3]), int(xywh[0]):int(xywh[2])]
