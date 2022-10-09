@@ -11,7 +11,7 @@ from nets.facenet import Facenet
 from nets_retinaface.retinaface import RetinaFace
 from utils.anchors import Anchors
 from utils.config import cfg_mnet, cfg_re50
-from utils.utils import (Alignment_1, compare_faces, letterbox_image,
+from utils.utils import (Alignment_1, compare_faces, resize_image,
                          preprocess_input)
 from utils.utils_bbox import (decode, decode_landm, non_max_suppression,
                               retinaface_correct_boxes)
@@ -181,7 +181,7 @@ class Retinaface(object):
                 np.shape(image)[1], np.shape(image)[0]
             ]
             if self.letterbox_image:
-                image = letterbox_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]])
+                image = resize_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]], True)
                 anchors = self.anchors
             else:
                 anchors = Anchors(self.cfg, image_size=(im_height, im_width)).get_anchors()
@@ -253,7 +253,7 @@ class Retinaface(object):
             landmark = np.reshape(best_face_location[5:],(5,2)) - np.array([int(best_face_location[0]),int(best_face_location[1])])
             crop_img,_ = Alignment_1(crop_img,landmark)
 
-            crop_img = np.array(letterbox_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0])))/255
+            crop_img = np.array(resize_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0]), True))/255
             crop_img = crop_img.transpose(2, 0, 1)
             crop_img = np.expand_dims(crop_img,0)
             #---------------------------------------------------#
@@ -277,7 +277,7 @@ class Retinaface(object):
         
         返回128长度特征值向量
         """
-        image = np.array(letterbox_image(np.uint8(image),(self.facenet_input_shape[1],self.facenet_input_shape[0])))/255
+        image = np.array(resize_image(np.uint8(image),(self.facenet_input_shape[1],self.facenet_input_shape[0]), True))/255
         image = np.expand_dims(image.transpose(2, 0, 1),0)
         with torch.no_grad():
             image = torch.from_numpy(image).type(torch.FloatTensor)
@@ -320,7 +320,7 @@ class Retinaface(object):
         #   letterbox_image可以给图像增加灰条，实现不失真的resize
         #---------------------------------------------------------#
         if self.letterbox_image:
-            image = letterbox_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]])
+            image = resize_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]], True)
             anchors = self.anchors
         else:
             anchors = Anchors(self.cfg, image_size=(im_height, im_width)).get_anchors()
@@ -416,7 +416,7 @@ class Retinaface(object):
         #   letterbox_image可以给图像增加灰条，实现不失真的resize
         #---------------------------------------------------------#
         if self.letterbox_image:
-            image = letterbox_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]])
+            image = resize_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]], True)
             anchors = self.anchors
         else:
             anchors = Anchors(self.cfg, image_size=(im_height, im_width)).get_anchors()
@@ -490,7 +490,7 @@ class Retinaface(object):
             #----------------------#
             #   人脸编码
             #----------------------#
-            crop_img = np.array(letterbox_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0])))/255
+            crop_img = np.array(resize_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0]), True))/255
             crop_img = np.expand_dims(crop_img.transpose(2, 0, 1),0)
             with torch.no_grad():
                 crop_img = torch.from_numpy(crop_img).type(torch.FloatTensor)
@@ -592,7 +592,7 @@ class Retinaface(object):
         #   letterbox_image可以给图像增加灰条，实现不失真的resize
         #---------------------------------------------------------#
         if self.letterbox_image:
-            image = letterbox_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]])
+            image = resize_image(image, [self.retinaface_input_shape[1], self.retinaface_input_shape[0]], True)
             anchors = self.anchors
         else:
             anchors = Anchors(self.cfg, image_size=(im_height, im_width)).get_anchors()
@@ -661,7 +661,7 @@ class Retinaface(object):
                 #----------------------#
                 #   人脸编码
                 #----------------------#
-                crop_img = np.array(letterbox_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0])))/255
+                crop_img = np.array(resize_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0]), True))/255
                 crop_img = np.expand_dims(crop_img.transpose(2, 0, 1),0)
                 with torch.no_grad():
                     crop_img = torch.from_numpy(crop_img).type(torch.FloatTensor)
@@ -753,7 +753,7 @@ class Retinaface(object):
                     #----------------------#
                     #   人脸编码
                     #----------------------#
-                    crop_img = np.array(letterbox_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0])))/255
+                    crop_img = np.array(resize_image(np.uint8(crop_img),(self.facenet_input_shape[1],self.facenet_input_shape[0]), True))/255
                     crop_img = np.expand_dims(crop_img.transpose(2, 0, 1),0)
                     with torch.no_grad():
                         crop_img = torch.from_numpy(crop_img).type(torch.FloatTensor)
