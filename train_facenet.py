@@ -152,8 +152,8 @@ if __name__ == "__main__":
     #------------------------------------------------------------------#
     #   LFW评估数据集的文件路径和对应的txt文件
     #------------------------------------------------------------------#
-    lfw_dir_path    = "lfw"
-    lfw_pairs_path  = "model_data/lfw_pair.txt"
+    lfw_dir_path    = "lfwpairs/lfw-py/lfw_funneled"
+    lfw_pairs_path  = "lfwpairs/lfw-py/pairs.txt"
 
     #------------------------------------------------------#
     #   设置用到的显卡

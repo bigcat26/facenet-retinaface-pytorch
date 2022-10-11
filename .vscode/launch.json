@@ -1,6 +1,18 @@
 {
     "configurations": [
         {
+            "name": "debug: current file",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "http_proxy": "http://127.0.0.1:10809",
+                "https_proxy": "http://127.0.0.1:10809",
+            },
+            "justMyCode": true
+        },
+        {
             "name": "debug: face compare",
             "type": "python",
             "request": "launch",
