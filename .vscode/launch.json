@@ -18,13 +18,8 @@
             "request": "launch",
             "program": "face.py",
             "args": [
-                "img/sa1.jpg", 
-                "img/gillian1.jpg", 
-                "img/gillian2.jpg", 
                 "img/obama.jpg", 
                 "img/zhangxueyou.jpg", 
-                "face_dataset/张学友_1.jpg",
-                "face_dataset/obama_1.jpg",
             ],
             "console": "integratedTerminal",
             "justMyCode": true

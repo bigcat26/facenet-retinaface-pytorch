@@ -63,7 +63,7 @@ class FacenetDataset(Dataset):
         #------------------------------------------#
         if self.rand()<.5 and self.random: 
             image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox_image = True)
+        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
         image = preprocess_input(np.array(image, dtype='float32'))
         image = np.transpose(image, [2, 0, 1])
         images[0, :, :, :] = image
@@ -75,7 +75,7 @@ class FacenetDataset(Dataset):
         #------------------------------------------#
         if self.rand()<.5 and self.random: 
             image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox_image = True)
+        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
         image = preprocess_input(np.array(image, dtype='float32'))
         image = np.transpose(image, [2, 0, 1])
         images[1, :, :, :] = image
@@ -104,7 +104,7 @@ class FacenetDataset(Dataset):
         #------------------------------------------#
         if self.rand()<.5 and self.random: 
             image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox_image = True)
+        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
         image = preprocess_input(np.array(image, dtype='float32'))
         image = np.transpose(image, [2, 0, 1])
         images[2, :, :, :]  = image
@@ -193,8 +193,8 @@ class LFWDataset(datasets.ImageFolder):
         (path_1, path_2, issame)    = self.validation_images[index]
         image1, image2              = Image.open(path_1), Image.open(path_2)
 
-        image1 = resize_image(image1, [self.image_size[1], self.image_size[0]], letterbox_image = True)
-        image2 = resize_image(image2, [self.image_size[1], self.image_size[0]], letterbox_image = True)
+        image1 = resize_image(image1, [self.image_size[1], self.image_size[0]], letterbox = True)
+        image2 = resize_image(image2, [self.image_size[1], self.image_size[0]], letterbox = True)
         
         image1, image2 = np.transpose(preprocess_input(np.array(image1, np.float32)),[2, 0, 1]), np.transpose(preprocess_input(np.array(image2, np.float32)),[2, 0, 1])
 

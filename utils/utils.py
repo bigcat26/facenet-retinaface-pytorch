@@ -15,13 +15,11 @@ def cvtColor(image):
         image = image.convert('RGB')
         return image 
 
-#---------------------------------------------------#
-#   对输入图像进行resize
-#---------------------------------------------------#
-def resize_image(image, size, letterbox_image):
+
+def resize_image_ndarray(image: np.ndarray, size, letterbox: bool):
     ih, iw, _   = np.shape(image)
     w, h        = size
-    if letterbox_image:
+    if letterbox:
         scale   = min(w/iw, h/ih)
         nw      = int(iw*scale)
         nh      = int(ih*scale)
@@ -32,6 +30,34 @@ def resize_image(image, size, letterbox_image):
     else:
         new_image = cv2.resize(image, (w, h))
     return new_image
+
+def resize_image_pil(image: Image.Image, size, letterbox: bool):
+    iw, ih  = image.size
+    w, h    = size
+    if letterbox:
+        scale   = min(w/iw, h/ih)
+        nw      = int(iw*scale)
+        nh      = int(ih*scale)
+
+        image   = image.resize((nw,nh), Image.BICUBIC)
+        new_image = Image.new('RGB', size, (128,128,128))
+        new_image.paste(image, ((w-nw)//2, (h-nh)//2))
+    else:
+        new_image = image.resize((w, h), Image.BICUBIC)
+    return new_image
+
+#---------------------------------------------------#
+#   对输入图像进行resize
+#---------------------------------------------------#
+def resize_image(image, size, letterbox: bool):
+    if isinstance(image, np.ndarray):
+        return resize_image_ndarray(image, size, letterbox)
+    elif isinstance(image, Image.Image):
+        return resize_image_pil(image, size, letterbox)
+    elif isinstance(image, cv2.Mat):
+        raise RuntimeError('resizing cv2 image')
+    else:
+        raise RuntimeError('unknown image type')
 
 def get_num_classes(annotation_path):
     with open(annotation_path) as f:
