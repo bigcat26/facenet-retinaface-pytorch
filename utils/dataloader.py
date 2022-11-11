@@ -1,7 +1,6 @@
 
 import os
 import random
-
 import numpy as np
 import torch
 import torchvision.datasets as datasets
@@ -15,23 +14,22 @@ def rand(a=0, b=1):
     return np.random.rand()*(b-a) + a
 
 class FacenetDataset(Dataset):
-    def __init__(self, input_shape, lines, num_classes, random):
+    def __init__(self, input_shape, dataset, random):
         self.input_shape    = input_shape
-        self.lines          = lines
-        self.length         = len(lines)
-        self.num_classes    = num_classes
+        self.dataset        = dataset
         self.random         = random
-        
+        self.num_classes    = len(dataset.classes)
+
         #------------------------------------#
         #   路径和标签
         #------------------------------------#
-        self.paths  = []
-        self.labels = []
+        # self.paths  = []
+        # self.labels = []
 
-        self.load_dataset()
+        # self.load_dataset()
         
     def __len__(self):
-        return self.length
+        return len(self.dataset.keys)
 
     def __getitem__(self, index):
         #------------------------------------#
