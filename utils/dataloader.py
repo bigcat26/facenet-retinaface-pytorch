@@ -1,10 +1,10 @@
 
 import os
 import random
-
 import numpy as np
 import torch
 import torchvision.datasets as datasets
+from io import BytesIO
 from PIL import Image
 from torch.utils.data.dataset import Dataset
 
@@ -15,23 +15,29 @@ def rand(a=0, b=1):
     return np.random.rand()*(b-a) + a
 
 class FacenetDataset(Dataset):
-    def __init__(self, input_shape, lines, num_classes, random):
+    def __init__(self, input_shape, env, index, classes, random):
         self.input_shape    = input_shape
-        self.lines          = lines
-        self.length         = len(lines)
-        self.num_classes    = num_classes
+        self.env            = env
+        self.index          = index
+        self.classes        = classes
         self.random         = random
-        
+        self.num_classes    = len(classes)
+        # 将index转为记录行
+        lines = []
+        for i in index:
+            for j in index[i]:
+                lines.append(f'{i}/{j}')
+        self.lines = lines
         #------------------------------------#
         #   路径和标签
         #------------------------------------#
-        self.paths  = []
-        self.labels = []
+        # self.paths  = []
+        # self.labels = []
 
-        self.load_dataset()
-        
+        # self.load_dataset()
+
     def __len__(self):
-        return self.length
+        return len(self.lines)
 
     def __getitem__(self, index):
         #------------------------------------#
@@ -40,88 +46,67 @@ class FacenetDataset(Dataset):
         images = np.zeros((3, 3, self.input_shape[0], self.input_shape[1]))
         labels = np.zeros((3))
 
-        #------------------------------#
-        #   先获得两张同一个人的人脸
-        #   用来作为anchor和positive
-        #------------------------------#
-        c               = random.randint(0, self.num_classes - 1)
-        selected_path   = self.paths[self.labels[:] == c]
-        while len(selected_path) < 2:
-            c               = random.randint(0, self.num_classes - 1)
-            selected_path   = self.paths[self.labels[:] == c]
+        # 拿到第index条记录
+        item = self.lines[index]
 
-        #------------------------------------#
-        #   随机选择两张
-        #------------------------------------#
-        image_indexes = np.random.choice(range(0, len(selected_path)), 2)
-        #------------------------------------#
-        #   打开图片并放入矩阵
-        #------------------------------------#
-        image = cvtColor(Image.open(selected_path[image_indexes[0]]))
-        #------------------------------------------#
-        #   翻转图像
-        #------------------------------------------#
-        if self.rand()<.5 and self.random: 
-            image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
-        image = preprocess_input(np.array(image, dtype='float32'))
-        image = np.transpose(image, [2, 0, 1])
-        images[0, :, :, :] = image
-        labels[0] = c
-        
-        image = cvtColor(Image.open(selected_path[image_indexes[1]]))
-        #------------------------------------------#
-        #   翻转图像
-        #------------------------------------------#
-        if self.rand()<.5 and self.random: 
-            image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
-        image = preprocess_input(np.array(image, dtype='float32'))
-        image = np.transpose(image, [2, 0, 1])
-        images[1, :, :, :] = image
-        labels[1] = c
+        # 分解出class和index
+        parts = item.split('/')        
+        key = parts[0]
+        val = parts[1]
 
-        #------------------------------#
-        #   取出另外一个人的人脸
-        #------------------------------#
-        different_c         = list(range(self.num_classes))
-        different_c.pop(c)
-        different_c_index   = np.random.choice(range(0, self.num_classes - 1), 1)
-        current_c           = different_c[different_c_index[0]]
-        selected_path       = self.paths[self.labels == current_c]
-        while len(selected_path)<1:
-            different_c_index   = np.random.choice(range(0, self.num_classes - 1), 1)
-            current_c           = different_c[different_c_index[0]]
-            selected_path       = self.paths[self.labels == current_c]
+        if len(self.index[key]) < 2:
+            raise(f'dataset size for class {key} is too small!')
 
-        #------------------------------#
-        #   随机选择一张
-        #------------------------------#
-        image_indexes       = np.random.choice(range(0, len(selected_path)), 1)
-        image               = cvtColor(Image.open(selected_path[image_indexes[0]]))
-        #------------------------------------------#
-        #   翻转图像
-        #------------------------------------------#
-        if self.rand()<.5 and self.random: 
-            image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
-        image = preprocess_input(np.array(image, dtype='float32'))
-        image = np.transpose(image, [2, 0, 1])
-        images[2, :, :, :]  = image
-        labels[2]           = current_c
+        positive = val
+        while positive == val:
+            # 随机找出另一个不相同的图
+            positive = self.index[key][random.randint(0, len(self.index[key]) - 1)]
+
+        # 随机找出另一个不相同的class的任意图
+        negative_key = key
+        while negative_key == key:
+            negative_key = self.classes[random.randint(0, len(self.classes) - 1)]
+            negative = self.index[negative_key][random.randint(0, len(self.index[negative_key]) - 1)]
+
+        labels[0] = self.classes.index(key)
+        labels[1] = self.classes.index(key)
+        labels[2] = self.classes.index(negative_key)
+
+        with self.env.begin(write=False) as txn:
+            # origin
+            dat = txn.get(f'{key}/{val}'.encode('utf-8'))
+            image = cvtColor(Image.open(BytesIO(dat)))
+            if self.rand()<.5 and self.random: 
+                image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
+            image = preprocess_input(np.array(image, dtype='float32'))
+            image = np.transpose(image, [2, 0, 1])
+            images[0, :, :, :] = image
+
+            # positive
+            dat = txn.get(f'{key}/{positive}'.encode('utf-8'))
+            image = cvtColor(Image.open(BytesIO(dat)))
+            if self.rand()<.5 and self.random: 
+                image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
+            image = preprocess_input(np.array(image, dtype='float32'))
+            image = np.transpose(image, [2, 0, 1])
+            images[1, :, :, :] = image
+
+            # negative
+            dat = txn.get(f'{negative_key}/{negative}'.encode('utf-8'))
+            image = cvtColor(Image.open(BytesIO(dat)))
+            if self.rand()<.5 and self.random: 
+                image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
+            image = preprocess_input(np.array(image, dtype='float32'))
+            image = np.transpose(image, [2, 0, 1])
+            images[2, :, :, :] = image
 
         return images, labels
 
     def rand(self, a=0, b=1):
         return np.random.rand()*(b-a) + a
-    
-    def load_dataset(self):
-        for path in self.lines:
-            path_split = path.split(";")
-            self.paths.append(path_split[1].split()[0])
-            self.labels.append(int(path_split[0]))
-        self.paths  = np.array(self.paths,dtype=np.object)
-        self.labels = np.array(self.labels)
         
 # DataLoader中collate_fn使用
 def dataset_collate(batch):
