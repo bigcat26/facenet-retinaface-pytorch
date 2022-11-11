@@ -7,7 +7,7 @@ if __name__ == "__main__":
     #---------------------#
     #   训练集所在的路径
     #---------------------#
-    datasets_path   = "lfwpairs/lfw-py/lfw_funneled"
+    datasets_path   = "d:/dataset/CASIA-WebFaces"
 
     types_name      = os.listdir(datasets_path)
     types_name      = sorted(types_name)
