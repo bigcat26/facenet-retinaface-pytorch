@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 import lmdb
 
-def build_folder_index(root: str, exts=None, limit=sys.maxsize):
+def scan_dataset(root: str, exts=None, limit=sys.maxsize):
     index = {}
     if exts is None:
         exts = ['jpg', 'png']
@@ -69,7 +69,7 @@ def casia_webface_to_lmdb(root: str, index: dict, database: str):
                 pbar.update(1)
     print('done!')
 
-def split_index(index):
+def save_indexes(index):
     # 获取总量
     total = 0
     for k in index:
@@ -112,12 +112,16 @@ def split_index(index):
 
     print('done')
 
+
 if __name__ == '__main__':
 
-    with gzip.open('index.gz', 'rb') as f:
-        index = pickle.load(f)
+    # index, n = scan_dataset('/mnt/dataset/CASIA-WebFaces/datasets')
+    # save_indexes(index)
 
-    casia_webface_to_lmdb('/mnt/dataset/CASIA-WebFaces/datasets', index, '/mnt/dataset/CASIA-WebFaces/database')
+    # with gzip.open('index.gz', 'rb') as f:
+    #     index = pickle.load(f)
+
+    # casia_webface_to_lmdb('/mnt/dataset/CASIA-WebFaces/datasets', index, '/mnt/dataset/CASIA-WebFaces/database')
 
     # with open('img/zhangxueyou.jpg', 'rb') as f:
     #     dat = f.read()
@@ -125,9 +129,7 @@ if __name__ == '__main__':
     # image = Image.open(BytesIO(dat))
     # image.save('zhang2.png')
     
-    # split_index(index)
 
-    # index, n = build_folder_index('/mnt/dataset/CASIA-WebFaces/datasets')
     
     # parser = argparse.ArgumentParser(description='CASIA WebFace dataset to LMDB converter')
     # parser.add_argument('-i', '--input', type=str,

@@ -7,7 +7,6 @@ import torchvision.datasets as datasets
 from io import BytesIO
 from PIL import Image
 from torch.utils.data.dataset import Dataset
-from dataset.image_record import ImageRecord
 
 from .utils import cvtColor, preprocess_input, resize_image
 
@@ -108,14 +107,6 @@ class FacenetDataset(Dataset):
 
     def rand(self, a=0, b=1):
         return np.random.rand()*(b-a) + a
-    
-    def load_dataset(self):
-        for path in self.lines:
-            path_split = path.split(";")
-            self.paths.append(path_split[1].split()[0])
-            self.labels.append(int(path_split[0]))
-        self.paths  = np.array(self.paths,dtype=np.object)
-        self.labels = np.array(self.labels)
         
 # DataLoader中collate_fn使用
 def dataset_collate(batch):
