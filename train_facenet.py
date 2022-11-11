@@ -1,5 +1,8 @@
 import os
 
+import gzip
+import pickle
+import lmdb
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -14,7 +17,6 @@ from utils.callback import LossHistory
 from utils.dataloader import FacenetDataset, LFWDataset, dataset_collate
 from utils.utils import get_num_classes, show_config
 from utils.utils_fit import fit_one_epoch
-
 
 if __name__ == "__main__":
     #-------------------------------#
@@ -46,7 +48,8 @@ if __name__ == "__main__":
     #--------------------------------------------------------#
     #   指向根目录下的cls_train.txt，读取人脸路径与标签
     #--------------------------------------------------------#
-    annotation_path = "cls_train.txt"
+    # annotation_path = "cls_train.txt"
+    dataset_db      = '/mnt/dataset/CASIA-WebFaces/database'
     #--------------------------------------------------------#
     #   输入图像大小，常用设置如[112, 112, 3]
     #--------------------------------------------------------#
@@ -103,7 +106,7 @@ if __name__ == "__main__":
     #                   batch_size需要为3的倍数
     #   Epoch           模型总共训练的epoch
     #------------------------------------------------------#
-    batch_size      = 96
+    batch_size      = 12
     Init_Epoch      = 0
     Epoch           = 100
 
@@ -152,8 +155,8 @@ if __name__ == "__main__":
     #------------------------------------------------------------------#
     #   LFW评估数据集的文件路径和对应的txt文件
     #------------------------------------------------------------------#
-    lfw_dir_path    = "lfwpairs/lfw-py/lfw_funneled"
-    lfw_pairs_path  = "lfwpairs/lfw-py/pairs.txt"
+    lfw_dir_path    = '/mnt/dataset/lfw-pairs/lfw_funneled'
+    lfw_pairs_path  = '/mnt/dataset/lfw-pairs/pairs.txt'
 
     #------------------------------------------------------#
     #   设置用到的显卡
@@ -172,7 +175,27 @@ if __name__ == "__main__":
         local_rank      = 0
         rank            = 0
 
-    num_classes = get_num_classes(annotation_path)
+    # 分类列表
+    with gzip.open('classes.gz', 'rb') as f:
+        classes = pickle.load(f)
+    # 预制菜, 为了保证每次打断再train都是用的相同的训练集和验证集
+    with gzip.open('train-index.gz', 'rb') as f:
+        index_train = pickle.load(f)
+    with gzip.open('val-index.gz', 'rb') as f:
+        index_val = pickle.load(f)
+
+    num_classes = len(classes)
+    num_train = 0
+    num_val = 0
+
+    for k in index_train:
+        num_train += len(index_train[k])
+    for k in index_val:
+        num_val += len(index_val[k])
+    
+    # 数据库
+    env = lmdb.open(dataset_db, map_size=1099511627776)
+    
     #---------------------------------#
     #   载入模型并加载预训练权重
     #---------------------------------#
@@ -253,18 +276,6 @@ if __name__ == "__main__":
     LFW_loader = torch.utils.data.DataLoader(
         LFWDataset(dir=lfw_dir_path, pairs_path=lfw_pairs_path, image_size=input_shape), batch_size=32, shuffle=False) if lfw_eval_flag else None
 
-    #-------------------------------------------------------#
-    #   0.01用于验证，0.99用于训练
-    #-------------------------------------------------------#
-    val_split = 0.01
-    with open(annotation_path,"r") as f:
-        lines = f.readlines()
-    np.random.seed(10101)
-    np.random.shuffle(lines)
-    np.random.seed(None)
-    num_val = int(len(lines)*val_split)
-    num_train = len(lines) - num_val
-    
     show_config(
         num_classes = num_classes, backbone = backbone, model_path = model_path, input_shape = input_shape, \
         Init_Epoch = Init_Epoch, Epoch = Epoch, batch_size = batch_size, \
@@ -309,8 +320,8 @@ if __name__ == "__main__":
         #---------------------------------------#
         #   构建数据集加载器。
         #---------------------------------------#
-        train_dataset   = FacenetDataset(input_shape, lines[:num_train], num_classes, random = True)
-        val_dataset     = FacenetDataset(input_shape, lines[num_train:], num_classes, random = False)
+        train_dataset   = FacenetDataset(input_shape, env, index_train, classes, random = True)
+        val_dataset     = FacenetDataset(input_shape, env, index_val,   classes, random = False)
 
         if distributed:
             train_sampler   = torch.utils.data.distributed.DistributedSampler(train_dataset, shuffle=True,)

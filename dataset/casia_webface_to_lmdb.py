@@ -7,7 +7,8 @@ import gzip
 import argparse
 import pickle
 import random
-from image_record import ImageRecord
+from io import BytesIO
+from PIL import Image
 from functools import reduce
 from tqdm import tqdm
 
@@ -46,49 +47,29 @@ def build_folder_index(root: str, exts=None, limit=sys.maxsize):
     # scan complete
     return (index, pbar.n)
 
-def casia_webface_to_lmdb(root: str, database: str):
+def casia_webface_to_lmdb(root: str, index: dict, database: str):
     """
-    search image files in root, store images with path into database
-    key value format: | root/file | ImageRecord |
+    read files in root, store images with path into database
+    key value format: | root/file | file data |
     """
+    files = []
+    for i in index:
+        for j in index[i]:
+            files.append(f'{i}/{j}')
 
     env = lmdb.open(database, map_size=1099511627776)
-    with env.begin(write=True) as txn:
-        with tqdm(total=1) as pbar:
-            for root, _, files in os.walk(root):
-                pbar.total += len(files)
-                pbar.refresh()
-                # print(f'root={root} basename={os.path.basename(root)}')
-                for name in files:
-                    match = reduce((lambda x, y: x or y), [
-                                   name.endswith(ext) for ext in exts])
-                    if not match:
-                        pbar.total -= 1
-                        print(f'file {name} skipped')
-                        continue
-                    label = os.path.basename(root)
-                    if index.get(label) is None:
-                        index[label] = []
-                    index[label].append(name)
-                    
-                    key = f'{label}/{name}'
-                    full_path = os.path.join(root, name)
-                    # print(f'path={full_path} key={key} label={label}')
-                    rec = ImageRecord.from_image(label, full_path)
-                    txn.put(key.encode('utf-8'), rec.dumps())
-
-            total = pbar.n
-        # txn.put('_index'.encode('utf-8'), pickle.dumps(index))
-        # txn.put('_total'.encode('utf-8'), pickle.dumps(total))
-    # txn.commit()
+    with tqdm(total=len(files)) as pbar:
+        with env.begin(write=True) as txn:
+            for i, key in enumerate(files):
+                file = f'{root}/{key}'
+                with open(file, 'rb') as f:
+                    txn.put(key.encode('utf-8'), f.read())
+                # pbar.total += 1
+                # pbar.refresh()
+                pbar.update(1)
     print('done!')
 
-if __name__ == '__main__':
-        
-    # 读取被cache的index
-    with open('index.dat', 'rb') as f:
-        index = pickle.load(f)
-
+def split_index(index):
     # 获取总量
     total = 0
     for k in index:
@@ -131,9 +112,22 @@ if __name__ == '__main__':
 
     print('done')
 
+if __name__ == '__main__':
+
+    with gzip.open('index.gz', 'rb') as f:
+        index = pickle.load(f)
+
+    casia_webface_to_lmdb('/mnt/dataset/CASIA-WebFaces/datasets', index, '/mnt/dataset/CASIA-WebFaces/database')
+
+    # with open('img/zhangxueyou.jpg', 'rb') as f:
+    #     dat = f.read()
+
+    # image = Image.open(BytesIO(dat))
+    # image.save('zhang2.png')
+    
+    # split_index(index)
+
     # index, n = build_folder_index('/mnt/dataset/CASIA-WebFaces/datasets')
-    # with open('index.dat', 'wb') as f:
-    #     f.write(pickle.dumps(index))
     
     # parser = argparse.ArgumentParser(description='CASIA WebFace dataset to LMDB converter')
     # parser.add_argument('-i', '--input', type=str,
