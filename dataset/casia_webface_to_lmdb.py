@@ -120,21 +120,7 @@ def count_index(index):
         size += len(index[i])
     return size
 
-if __name__ == '__main__':
-
-    # index, n = scan_dataset('/mnt/dataset/CASIA-WebFaces/datasets')
-    # with gzip.open('index.gz', 'wb') as f:
-    #     f.write(pickle.dumps(index))
-
-    # with gzip.open('index.gz', 'rb') as f:
-    #     index = pickle.load(f)
-    #     print(f'total classes: {len(index)}')
-    # save_indexes(index)
-
-    # with gzip.open('index.gz', 'rb') as f:
-    #     #index = pickle.load(f)
-    #     print(f'index size={count_index(pickle.load(f))}')
-
+def test():
     with gzip.open('train-index.gz', 'rb') as f:
         index_train = pickle.load(f)
         for i in index_train:
@@ -151,9 +137,49 @@ if __name__ == '__main__':
         # some = index_val.get('1367048')
         # print(f'some = {some}')
 
+def verify_database(database, index):
+    keys = []
+    for k in index:
+        for i in index[k]:
+            keys.append(f'{k}/{i}')
 
-    # casia_webface_to_lmdb('/mnt/dataset/CASIA-WebFaces/datasets', index, '/mnt/dataset/CASIA-WebFaces/database')
+    with lmdb.open(database, map_size=1099511627776) as env:
+        with tqdm(total=len(keys)) as pbar:
+            with env.begin(write=False) as txn:
+                # dat = txn.get('0095745/021.jpg'.encode('utf-8'))
+                for k in keys:
+                    dat = txn.get(k.encode('utf-8'))
+                    if dat is None:
+                        raise('unable to read key: {k}')
+                    img = Image.open(BytesIO(dat))
+                    if img is None:
+                        raise('unable to read image: {k}')
+                    pbar.update(1)
 
+if __name__ == '__main__':
+
+    # index, n = scan_dataset('/mnt/dataset/CASIA-WebFaces/datasets')
+    # with gzip.open('index.gz', 'wb') as f:
+    #     f.write(pickle.dumps(index))
+
+    with gzip.open('index.gz', 'rb') as f:
+        index = pickle.load(f)
+    #     print(f'total classes: {len(index)}')
+    #     print(f'total records: {count_index(index)}')
+    # save_indexes(index)
+
+    # with gzip.open('index.gz', 'rb') as f:
+    #     #index = pickle.load(f)
+    #     print(f'index size={count_index(pickle.load(f))}')
+
+    # casia_webface_to_lmdb(
+    #     '/mnt/dataset/CASIA-WebFaces/datasets', 
+    #     index, 
+    #     '/mnt/dataset/CASIA-WebFaces/db')
+
+
+    verify_database('/mnt/dataset/CASIA-WebFaces/database', index)
+    
     # with open('img/zhangxueyou.jpg', 'rb') as f:
     #     dat = f.read()
 
