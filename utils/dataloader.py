@@ -78,7 +78,11 @@ class FacenetDataset(Dataset):
         with self.env.begin(write=False) as txn:
             # origin
             dat = txn.get(f'{key}/{val}'.encode('utf-8'))
+            if dat is None:
+                raise(f'unable to read key: {key}/{val}')
             image = cvtColor(Image.open(BytesIO(dat)))
+            if image is None:
+                raise(f'unable to read image: {key}/{val}')
             if self.rand()<.5 and self.random: 
                 image = image.transpose(Image.FLIP_LEFT_RIGHT)
             image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
@@ -88,7 +92,11 @@ class FacenetDataset(Dataset):
 
             # positive
             dat = txn.get(f'{key}/{positive}'.encode('utf-8'))
+            if dat is None:
+                raise(f'unable to read key: {key}/{val}')
             image = cvtColor(Image.open(BytesIO(dat)))
+            if image is None:
+                raise(f'unable to read image: {key}/{val}')
             if self.rand()<.5 and self.random: 
                 image = image.transpose(Image.FLIP_LEFT_RIGHT)
             image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
@@ -98,7 +106,11 @@ class FacenetDataset(Dataset):
 
             # negative
             dat = txn.get(f'{negative_key}/{negative}'.encode('utf-8'))
+            if dat is None:
+                raise(f'unable to read key: {key}/{val}')
             image = cvtColor(Image.open(BytesIO(dat)))
+            if image is None:
+                raise(f'unable to read image: {key}/{val}')
             if self.rand()<.5 and self.random: 
                 image = image.transpose(Image.FLIP_LEFT_RIGHT)
             image = resize_image(image, [self.input_shape[1], self.input_shape[0]], letterbox = True)
