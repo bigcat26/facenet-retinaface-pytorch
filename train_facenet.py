@@ -206,7 +206,7 @@ if __name__ == "__main__":
         num_val += len(index_val[k])
     
     # 数据库
-    env = lmdb.open(dataset_db, map_size=2147483648)
+    env = lmdb.open(dataset_db, map_size=2147483648, max_readers=4096)
     
     #---------------------------------#
     #   载入模型并加载预训练权重
