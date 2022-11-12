@@ -24,7 +24,7 @@ if __name__ == "__main__":
     #   是否使用Cuda
     #   没有GPU可以设置成False
     #-------------------------------#
-    Cuda            = True
+    Cuda            = torch.cuda.is_available()
     #---------------------------------------------------------------------#
     #   distributed     用于指定是否使用单机多卡分布式运行
     #                   终端指令仅支持Ubuntu。CUDA_VISIBLE_DEVICES用于在Ubuntu下指定显卡。
@@ -50,7 +50,11 @@ if __name__ == "__main__":
     #   指向根目录下的cls_train.txt，读取人脸路径与标签
     #--------------------------------------------------------#
     # annotation_path = "cls_train.txt"
-    dataset_db      = 'c:/dataset/CASIA-database'
+    if sys.platform == 'win32':
+        dataset_db      = 'c:/dataset/CASIA-database'
+    else:
+        dataset_db      = '/mnt/dataset/CASIA-WebFaces/database'
+
     #--------------------------------------------------------#
     #   输入图像大小，常用设置如[112, 112, 3]
     #--------------------------------------------------------#
@@ -159,8 +163,12 @@ if __name__ == "__main__":
     #------------------------------------------------------------------#
     #   LFW评估数据集的文件路径和对应的txt文件
     #------------------------------------------------------------------#
-    lfw_dir_path    = "D:/dataset/lfw-pairs/lfw_funneled"
-    lfw_pairs_path  = "D:/dataset/lfw-pairs/pairs.txt"
+    if sys.platform == 'win32':
+        lfw_dir_path    = "D:/dataset/lfw-pairs/lfw_funneled"
+        lfw_pairs_path  = "D:/dataset/lfw-pairs/pairs.txt"
+    else:
+        lfw_dir_path    = "/mnt/dataset/lfw-pairs/lfw_funneled"
+        lfw_pairs_path  = "/mnt/dataset/lfw-pairs/pairs.txt"
 
     #------------------------------------------------------#
     #   设置用到的显卡
