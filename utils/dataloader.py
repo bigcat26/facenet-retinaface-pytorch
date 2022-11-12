@@ -64,10 +64,13 @@ class FacenetDataset(Dataset):
 
         # 随机找出另一个不相同的class的任意图
         negative_key = key
-        while negative_key == key:
+        while negative_key == key or negative_key is None:
             # 验证集分类无法覆盖训练集时, 有些class无法获取到, 需要跳过处理
             negative_key = self.classes[random.randint(0, len(self.classes) - 1)]
             if self.index.get(negative_key) is None:
+                continue
+            if len(self.index[negative_key]) == 0:
+                negative_key = None
                 continue
             negative = self.index[negative_key][random.randint(0, len(self.index[negative_key]) - 1)]
 
