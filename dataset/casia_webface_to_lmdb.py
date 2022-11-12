@@ -76,7 +76,7 @@ def save_indexes(index):
         total += len(index[k])
     
     # 计算val和train分别占多少份
-    num_val = math.ceil(total * 0.01)
+    num_val = 10575 * 2 # math.ceil(total * 0.01)
     num_train = total - num_val
     
     # 将val份分摊到每个class上，每个class最少需要贡献几份?
@@ -97,7 +97,9 @@ def save_indexes(index):
     while val_size < num_val:
         i = val_size % len(keys)
         select = random.randint(0, len(index[keys[i]]) - 1)
-        val_index[keys[i]] = index[keys[i]][select]
+        if val_index.get(keys[i]) is None:
+            val_index[keys[i]] = []
+        val_index[keys[i]].append(index[keys[i]][select])
         index[keys[i]].pop(select)
         val_size = val_size + 1
 
@@ -112,14 +114,43 @@ def save_indexes(index):
 
     print('done')
 
+def count_index(index):
+    size = 0
+    for i in index:
+        size += len(index[i])
+    return size
 
 if __name__ == '__main__':
 
     # index, n = scan_dataset('/mnt/dataset/CASIA-WebFaces/datasets')
-    # save_indexes(index)
+    # with gzip.open('index.gz', 'wb') as f:
+    #     f.write(pickle.dumps(index))
 
     # with gzip.open('index.gz', 'rb') as f:
     #     index = pickle.load(f)
+    #     print(f'total classes: {len(index)}')
+    # save_indexes(index)
+
+    # with gzip.open('index.gz', 'rb') as f:
+    #     #index = pickle.load(f)
+    #     print(f'index size={count_index(pickle.load(f))}')
+
+    with gzip.open('train-index.gz', 'rb') as f:
+        index_train = pickle.load(f)
+        for i in index_train:
+            if len(index_train[i]) < 2:
+                print(index_train[i])
+        print(f'train size={count_index(index_train)}')
+
+    with gzip.open('val-index.gz', 'rb') as f:
+        index_val = pickle.load(f)
+        for i in index_val:
+            if not len(index_val[i]) == 2:
+                print(index_val[i])
+        print(f'val size={count_index(index_val)}')
+        # some = index_val.get('1367048')
+        # print(f'some = {some}')
+
 
     # casia_webface_to_lmdb('/mnt/dataset/CASIA-WebFaces/datasets', index, '/mnt/dataset/CASIA-WebFaces/database')
 
