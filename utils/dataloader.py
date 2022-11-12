@@ -49,13 +49,17 @@ class FacenetDataset(Dataset):
         # 拿到第index条记录
         item = self.lines[index]
 
-        # 分解出class和index
-        parts = item.split('/')        
-        key = parts[0]
-        val = parts[1]
+        key = None
+        while key is None:
+            # 分解出class和index
+            parts = item.split('/')
+            key = parts[0]
+            val = parts[1]
 
-        if len(self.index[key]) < 2:
-            raise(f'dataset size for class {key} is too small!')
+            if len(self.index[key]) < 2:
+                # 这条记录不满2个, 随机换一条
+                key = None
+                item = self.lines[random.randint(0, len(self.lines) - 1)]
 
         positive = val
         while positive == val:
