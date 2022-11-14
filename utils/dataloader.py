@@ -47,7 +47,10 @@ class FacenetDataset(Dataset):
         labels = np.zeros((3))
 
         # 拿到第index条记录
-        item = self.lines[index]
+        if self.random:
+            item = self.lines[random.randint(0, len(self.lines) - 1)]
+        else:
+            item = self.lines[index]
 
         key = None
         while key is None:
