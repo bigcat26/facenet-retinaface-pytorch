@@ -13,6 +13,17 @@
             "justMyCode": true
         },
         {
+            "name": "debug: predict",
+            "type": "python",
+            "request": "launch",
+            "program": "predict_oneshot.py",
+            "args": [
+                "img/zhangxueyou.jpg", 
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "debug: face compare",
             "type": "python",
             "request": "launch",

@@ -1,6 +1,7 @@
 import cv2
 import argparse
-# import numpy as np
+import numpy as np
+from utils import utils
 
 from retinaface import Retinaface
 
@@ -37,6 +38,7 @@ if __name__ == "__main__":
         else:
             image   = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             lms     = retinaface.face_detect(image)
+            face    = utils.crop_npimage(np.array(image), lms[:4])
             print(lms)
             r_image = retinaface.detect_image(image)
             r_image = cv2.cvtColor(r_image, cv2.COLOR_RGB2BGR)
