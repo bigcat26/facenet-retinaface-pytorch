@@ -36,6 +36,8 @@ if __name__ == "__main__":
             print('Open Error! Try again!')
         else:
             image   = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            lms     = retinaface.face_detect(image)
+            print(lms)
             r_image = retinaface.detect_image(image)
             r_image = cv2.cvtColor(r_image, cv2.COLOR_RGB2BGR)
             cv2.imwrite(f"out{i}.jpg", r_image)
