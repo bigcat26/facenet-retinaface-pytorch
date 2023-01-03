@@ -50,14 +50,10 @@ def resize_image_pil(image: Image.Image, size, letterbox: bool):
 #   对输入图像进行resize
 #---------------------------------------------------#
 def resize_image(image, size, letterbox: bool):
-    if isinstance(image, np.ndarray):
-        return resize_image_ndarray(image, size, letterbox)
-    elif isinstance(image, Image.Image):
+    if isinstance(image, Image.Image):
         return resize_image_pil(image, size, letterbox)
-    elif isinstance(image, cv2.Mat):
-        raise RuntimeError('resizing cv2 image')
-    else:
-        raise RuntimeError('unknown image type')
+    else: #if isinstance(image, np.ndarray):
+        return resize_image_ndarray(image, size, letterbox)
 
 def get_num_classes(annotation_path):
     with open(annotation_path) as f:
@@ -100,7 +96,34 @@ def compare_faces(known_face_encodings, face_encoding_to_check, tolerance=1):
 #-------------------------------------#
 #   人脸对齐
 #-------------------------------------#
-def Alignment_1(img,landmark):
+def align_face_5kp(img, landmark):
+    x = landmark[0,0] - landmark[1,0]
+    y = landmark[0,1] - landmark[1,1]
+    # 眼睛连线相对于水平线的倾斜角
+    if x==0:
+        angle = 0
+    else: 
+        # 计算它的弧度制
+        angle = math.atan(y/x)*180/math.pi
+
+    center = (img.shape[1]//2, img.shape[0]//2)
+    
+    RotationMatrix = cv2.getRotationMatrix2D(center, angle, 1)
+    # 仿射函数
+    new_img = cv2.warpAffine(img,RotationMatrix,(img.shape[1],img.shape[0])) 
+
+    RotationMatrix = np.array(RotationMatrix)
+    new_landmark = []
+    for i in range(landmark.shape[0]):
+        pts = []
+        pts.append(RotationMatrix[0,0]*landmark[i,0]+RotationMatrix[0,1]*landmark[i,1]+RotationMatrix[0,2])
+        pts.append(RotationMatrix[1,0]*landmark[i,0]+RotationMatrix[1,1]*landmark[i,1]+RotationMatrix[1,2])
+        new_landmark.append(pts)
+
+    new_landmark = np.array(new_landmark)
+    return new_img, new_landmark
+
+def Alignment_1(img, landmark):
     if landmark.shape[0]==68:
         x = landmark[36,0] - landmark[45,0]
         y = landmark[36,1] - landmark[45,1]
@@ -123,16 +146,15 @@ def Alignment_1(img,landmark):
     RotationMatrix = np.array(RotationMatrix)
     new_landmark = []
     for i in range(landmark.shape[0]):
-        pts = []    
+        pts = []
         pts.append(RotationMatrix[0,0]*landmark[i,0]+RotationMatrix[0,1]*landmark[i,1]+RotationMatrix[0,2])
         pts.append(RotationMatrix[1,0]*landmark[i,0]+RotationMatrix[1,1]*landmark[i,1]+RotationMatrix[1,2])
         new_landmark.append(pts)
 
     new_landmark = np.array(new_landmark)
-
     return new_img, new_landmark
 
-def crop_npimage(img, xywh):
+def crop_image(img, xywh):
     """裁剪图像"""
     return np.array(img)[int(xywh[1]):int(xywh[3]), int(xywh[0]):int(xywh[2])]
 

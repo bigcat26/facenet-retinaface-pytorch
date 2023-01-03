@@ -38,7 +38,19 @@ if __name__ == "__main__":
         else:
             image   = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             lms     = retinaface.face_detect(image)
-            face    = utils.crop_npimage(np.array(image), lms[:4])
+            if len(lms) != 1:
+                print('only one face is expected!')
+                pass
+            
+            lms = lms.squeeze()
+            face    = utils.crop_image(image, lms[:4])
+            face, _ = utils.align_face_5kp(face, lms[5:].reshape((5, 2)))
+
+            face    = cv2.cvtColor(face, cv2.COLOR_RGB2BGR)
+            cv2.imwrite('face.jpg', face)
+            
+            
+            
             print(lms)
             r_image = retinaface.detect_image(image)
             r_image = cv2.cvtColor(r_image, cv2.COLOR_RGB2BGR)

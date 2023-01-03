@@ -18,7 +18,7 @@
             "request": "launch",
             "program": "predict_oneshot.py",
             "args": [
-                "img/zhangxueyou.jpg", 
+                "img/obama.jpg", 
             ],
             "console": "integratedTerminal",
             "justMyCode": true
