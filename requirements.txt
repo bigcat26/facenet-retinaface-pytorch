@@ -9,3 +9,8 @@ h5py==2.10.0
 lmdb==1.3.0
 torch==1.2.0
 torchvision==0.4.0
+# postgresql
+psycopg2==2.9.5
+SQLAlchemy-1.4.46
+# export restful api
+flask==2.2.2
