@@ -2,3 +2,4 @@
 .ipynb_checkpoints/
 cls_train.txt
 logs/
+credentials.json
