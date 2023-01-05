@@ -21,7 +21,7 @@ class NumpyArray(TypeDecorator):
         return value.tobytes()
 
     def process_result_value(self, value, dialect):
-        return np.frombuffer(value)
+        return np.frombuffer(value, dtype=np.float32)
 
 class FaceFeature(Base):
     __tablename__ = "feature"
@@ -53,6 +53,10 @@ class FaceDatabase:
     def open(self, **kwargs):
         # with open(file, 'rb') as f:
         self.engine = create_engine(f'postgresql://{kwargs["db_user"]}:{kwargs["db_passwd"]}@{kwargs["db_host"]}:{kwargs["db_port"]}/{kwargs["db_name"]}')
+        # inspector = inspect(engine)
+        # print ('Postgres database engine inspector created...')
+        # schemas = inspector.get_schema_names()
+        # print(schemas)
         self.db_session = sessionmaker(bind=self.engine)
 
     def close(self):
@@ -80,10 +84,13 @@ class FaceDatabase:
                 return True
         return False
 
-    # def unregister_by_name(self, name: String):
-    #     with self.db_session() as session:
-    #         session.query(FacePerson).filter(FacePerson.name == name).delete()
-    #         session.commit()
+    def unregister_by_name(self, name: String):
+        with self.db_session() as session:
+            users = session.query(FacePerson).filter(FacePerson.name == name)
+            for user in users:
+                session.query(FaceFeature).filter(FaceFeature.pid == user.pid).delete()
+                session.delete(user)
+            session.commit()
 
     def features(self):
         with self.db_session() as session:
@@ -91,29 +98,11 @@ class FaceDatabase:
             return feats
 
 if __name__ == "__main__":
-    with open('credentials.json', 'r') as f:
+    with open('credentials.json', 'r', encoding='utf8') as f:
         cfg = json.load(f)
-    # engine = create_engine(f'postgresql://{cfg["db_user"]}:{cfg["db_passwd"]}@{cfg["db_host"]}:{cfg["db_port"]}/{cfg["db_name"]}')
-    # inspector = inspect(engine)
-    # print ('Postgres database engine inspector created...')
-    # schemas = inspector.get_schema_names()
-    # print(schemas)
-    # DBSession = sessionmaker(bind=engine)
-    # with DBSession() as session:
-    #     person = session.query(FacePerson).filter(FacePerson.name=='demo').one()
-    # print(person)
 
     db = FaceDatabase()
     db.open(**cfg)
-    db.register('阿兜', np.array([2.1, 2.2, 2.3]))
+    db.register('阿兜', np.random.randn(128))
     f = db.features()
-    # db.unregister_by_name('阿兜')
-    # db.register('name2', [2.1, 2.2, 2.3])
-    # db.unregister(2)
-    # db.save('facedb.npz')
-    # db.load('facedb.npz')
-
-# arr1 = np.array([[1, 2, 3]])
-# arr2 = np.array([[4, 5, 6]])
-# arr = np.concatenate((arr1, arr2), axis=0)
-# print(arr)
+    db.unregister_by_name('阿兜')

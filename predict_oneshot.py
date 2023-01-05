@@ -5,6 +5,33 @@ from utils import utils
 
 from retinaface import Retinaface
 
+i = 0
+
+def extract_feat_from_file(img):
+    global i
+    image = cv2.imread(img)
+    if image is None:
+        print('Open Error! Try again!')
+        return []
+
+    image   = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    lms     = retinaface.face_detect(image)
+    if len(lms) != 1:
+        print('only one face is expected!')
+        pass
+    
+    lms = lms.squeeze()
+    face    = utils.crop_image(image, lms[:4])
+    face, _ = utils.align_face_5kp(face, lms[5:].reshape((5, 2)))
+    
+    save    = cv2.cvtColor(face, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(f'img{i}.jpg', save)
+    i = i + 1
+    
+    feat    = retinaface.extract_feature(face)
+    return feat
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Retinaface')
 
@@ -31,27 +58,15 @@ if __name__ == "__main__":
     4、如果想要截取下目标，可以利用获取到的(b[0], b[1]), (b[2], b[3])这四个值在原图上利用矩阵的方式进行截取。
     5、在更换facenet网络后一定要重新进行人脸编码，运行encoding.py。
     '''
-    for i, img in enumerate(args.files):
-        image = cv2.imread(img)
-        if image is None:
-            print('Open Error! Try again!')
-        else:
-            image   = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            lms     = retinaface.face_detect(image)
-            if len(lms) != 1:
-                print('only one face is expected!')
-                pass
-            
-            lms = lms.squeeze()
-            face    = utils.crop_image(image, lms[:4])
-            face, _ = utils.align_face_5kp(face, lms[5:].reshape((5, 2)))
+    # for i, img in enumerate(args.files):
+    feat0   = extract_feat_from_file('img/obama3.jpg')
+    feat1   = extract_feat_from_file('img/obama4.jpg')
 
-            face    = cv2.cvtColor(face, cv2.COLOR_RGB2BGR)
-            cv2.imwrite('face.jpg', face)
-            
-            
-            
-            print(lms)
-            r_image = retinaface.detect_image(image)
-            r_image = cv2.cvtColor(r_image, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(f"out{i}.jpg", r_image)
+    dist    = utils.face_distance(feat0, feat1, 0)
+    print(dist)
+
+        
+        # print(lms)
+        # r_image = retinaface.detect_image(image)
+        # r_image = cv2.cvtColor(r_image, cv2.COLOR_RGB2BGR)
+        # cv2.imwrite(f"out{i}.jpg", r_image)

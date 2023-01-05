@@ -472,6 +472,21 @@ class Retinaface(object):
             
         return boxes_conf_landms
 
+    def extract_feature(self, image):
+        image = np.array(resize_image(np.uint8(image),(self.facenet_input_shape[1],self.facenet_input_shape[0]), True)) / 255
+        # WxHxC -> CxWxH -> NxCxWxH
+        image = np.expand_dims(image.transpose(2, 0, 1), 0)
+        with torch.no_grad():
+            image = torch.from_numpy(image).type(torch.FloatTensor)
+            if self.cuda:
+                image = image.cuda()
+
+            #-----------------------------------------------#
+            #   利用facenet_model计算长度为128特征向量
+            #-----------------------------------------------#
+            face_encoding = self.facenet(image)[0].cpu().numpy()
+            return face_encoding
+
     #---------------------------------------------------#
     #   检测图片
     #---------------------------------------------------#
