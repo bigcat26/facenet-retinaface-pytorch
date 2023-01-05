@@ -12,11 +12,14 @@ db = FaceDatabase()
 app = Flask(__name__)
 retinaface = Retinaface()
 
-@app.route("/")
-def index():
-    return "<p>Hello, World!</p>"
+@app.route("/unreg", methods = ['GET'])
+def unregister():
+    if request.args['pid']:
+        db.unregister(request.args['pid'])
+        result = {'status': 'OK'}
+        return Response(json.dumps(result), mimetype='text/json')
 
-@app.route('/register', methods = ['GET', 'POST'])
+@app.route('/reg', methods = ['GET', 'POST'])
 def register():
     if request.method == 'POST':
         name = request.form['name']
