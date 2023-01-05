@@ -71,11 +71,13 @@ class Retinaface(object):
         #----------------------------------------------------------------------#
         #   facenet训练完的权值路径
         #----------------------------------------------------------------------#
-        "facenet_model_path"    : 'model_data/facenet_mobilenet.pth',
+        "facenet_model_path"    : 'model_data/facenet_inception_resnetv1.pth',
+        # "facenet_model_path"    : 'model_data/facenet_mobilenet.pth',
         #----------------------------------------------------------------------#
         #   facenet所使用的主干网络， mobilenet和inception_resnetv1
         #----------------------------------------------------------------------#
-        "facenet_backbone"      : "mobilenet",
+        "facenet_backbone"      : "inception_resnetv1",
+        # "facenet_backbone"      : "mobilenet",
         #----------------------------------------------------------------------#
         #   facenet所使用到的输入图片大小
         #----------------------------------------------------------------------#
@@ -121,13 +123,14 @@ class Retinaface(object):
         self.anchors = Anchors(self.cfg, image_size=(self.retinaface_input_shape[0], self.retinaface_input_shape[1])).get_anchors()
         self.generate()
 
-        try:
-            self.known_face_encodings = np.load("model_data/{backbone}_face_encoding.npy".format(backbone=self.facenet_backbone))
-            self.known_face_names     = np.load("model_data/{backbone}_names.npy".format(backbone=self.facenet_backbone))
-        except:
-            if not encoding:
-                print("载入已有人脸特征失败，请检查model_data下面是否生成了相关的人脸特征文件。")
-            pass
+        # try:
+        #     self.known_face_encodings = np.load("model_data/{backbone}_face_encoding.npy".format(backbone=self.facenet_backbone))
+        #     self.known_face_names     = np.load("model_data/{backbone}_names.npy".format(backbone=self.facenet_backbone))
+        # except:
+        #     if not encoding:
+        #         print("载入已有人脸特征失败，请检查model_data下面是否生成了相关的人脸特征文件。")
+        #     pass
+
     #---------------------------------------------------#
     #   获得所有的分类
     #---------------------------------------------------#
