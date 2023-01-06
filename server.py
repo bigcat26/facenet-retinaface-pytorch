@@ -1,16 +1,33 @@
 import cv2
 import json
+import math
 import numpy as np
 from utils import utils
 
 from retinaface import Retinaface
 from flask import Flask, request, Response
-from werkzeug.utils import secure_filename
+# from werkzeug.utils import secure_filename
 from facedb import FaceDatabase
 
 db = FaceDatabase()
 app = Flask(__name__)
 retinaface = Retinaface()
+
+def distance(embeddings1, embeddings2, distance_metric=0):
+    if distance_metric==0:
+        # Euclidian distance
+        diff = np.subtract(embeddings1, embeddings2)
+        dist = np.sum(np.square(diff), 0)
+    elif distance_metric==1:
+        # Distance based on cosine similarity
+        dot = np.sum(np.multiply(embeddings1, embeddings2), axis=0)
+        norm = np.linalg.norm(embeddings1, axis=0) * np.linalg.norm(embeddings2, axis=0)
+        similarity = dot / norm
+        dist = np.arccos(similarity) / math.pi
+    else:
+        raise 'Undefined distance metric %d' % distance_metric 
+        
+    return dist
 
 @app.route("/unreg", methods = ['GET'])
 def unregister():
@@ -98,21 +115,26 @@ def match():
         </form>
     '''
 
+def get_feature_from_image(img):
+    landmarks = retinaface.face_detect(img)
+    if len(landmarks) != 1:
+        return False, None
+    landmarks = landmarks.squeeze()
+    npimg = np.asarray(img, np.uint8)
+    face    = npimg[int(landmarks[1]):int(landmarks[3]), int(landmarks[0]):int(landmarks[2])]
+    face, _ = utils.align_face_5kp(face, landmarks[5:].reshape((5, 2)))
+    return True, retinaface.extract_feature(face)
+
 @app.route('/feature', methods = ['GET', 'POST'])
 def feature():
     if request.method == 'POST':
         fp = request.files['file'].read()
         buf = np.frombuffer(fp, np.uint8)
         img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
-        landmarks = retinaface.face_detect(img)
-        if len(landmarks) != 1:
-            result = {'status': 'Error', 'message': f'invalid face count: {len(landmarks)}'}
-            return Response(json.dumps(result), mimetype='text/json')
-        landmarks = landmarks.squeeze()
-        npimg = np.asarray(img, np.uint8)
-        face    = npimg[int(landmarks[1]):int(landmarks[3]), int(landmarks[0]):int(landmarks[2])]
-        face, _ = utils.align_face_5kp(face, landmarks[5:].reshape((5, 2)))
-        feat    = retinaface.extract_feature(face)
+        ok, feat = get_feature_from_image(img)
+        if not ok:
+            return Response(json.dumps({'status': 'Error', 'message': f'extract feat from image failed'}), mimetype='text/json')
+
         result = {'status': 'OK', 'data': feat.tolist()}
         return Response(json.dumps(result), mimetype='text/json')
     return '''
@@ -120,6 +142,38 @@ def feature():
         <form method="post" enctype="multipart/form-data">
         <input type="file" name="file">
         <input type="submit">
+        </form>
+    '''
+
+@app.route('/diff', methods = ['GET', 'POST'])
+def diff():
+    if request.method == 'POST':
+        fp = request.files['file1'].read()
+        buf = np.frombuffer(fp, np.uint8)
+        img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+        ok, feat1 = get_feature_from_image(img)
+        if not ok:
+            return Response(json.dumps({'status': 'Error', 'message': f'extract feat from image 1 failed'}), mimetype='text/json')
+
+        fp = request.files['file2'].read()
+        buf = np.frombuffer(fp, np.uint8)
+        img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+        ok, feat2 = get_feature_from_image(img)
+        if not ok:
+            return Response(json.dumps({'status': 'Error', 'message': f'extract feat from image 2 failed'}), mimetype='text/json')
+
+        euc_dist = distance(feat1, feat2, 0)
+        cos_dist = distance(feat1, feat2, 1)
+        old_dist = utils.face_distance(feat1, feat2, 0)
+
+        result = {'status': 'OK', 'euc_dist': float(euc_dist), 'old_dist': float(old_dist), 'cos_dist': float(cos_dist)}
+        return Response(json.dumps(result), mimetype='text/json')
+    return '''
+        <h1>Compare face</h1>
+        <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file1"/><br/>
+        <input type="file" name="file2"/><br/>
+        <input type="submit"><br/>
         </form>
     '''
 
