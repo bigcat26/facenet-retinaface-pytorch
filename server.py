@@ -156,8 +156,35 @@ def detect():
         </form>
     '''
 
+@app.route('/clip', methods = ['GET', 'POST'])
+def clip():
+    if request.method == 'POST':
+        fp = request.files['file'].read()
+        buf = np.frombuffer(fp, np.uint8)
+        img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+        landmarks = retinaface.face_detect(img)
+        if len(landmarks) != 1:
+            result = {'status': 'Error', 'message': f'invalid face count: {len(landmarks)}'}
+            return Response(json.dumps(result), mimetype='text/json')
+        landmarks = landmarks.squeeze()
+        npimg = np.asarray(img, np.uint8)
+        face    = npimg[int(landmarks[1]):int(landmarks[3]), int(landmarks[0]):int(landmarks[2])]
+        face, _ = utils.align_face_5kp(face, landmarks[5:].reshape((5, 2)))
+        ret, data = cv2.imencode('.png', face)
+        if not ret:
+            result = {'status': 'Error', 'message': f'encode image error'}
+            return Response(json.dumps(result), mimetype='text/json')
+        return Response(data.tobytes(), mimetype='image/png')
+    return '''
+        <h1>Clip</h1>
+        <form method="post" enctype="multipart/form-data">
+            <label for="file">Image</label><input type="file" id="file" name="file"/><br/>
+            <input type="submit"/><br/>
+        </form>
+    '''
+
 if __name__ == "__main__":
     with open('credentials.json', 'r', encoding='utf8') as f:
         cfg = json.load(f)
     db.open(**cfg)
-    app.run()
+    app.run(debug=True)
