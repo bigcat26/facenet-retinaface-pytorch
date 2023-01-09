@@ -273,6 +273,10 @@ class Retinaface(object):
         np.save("model_data/{backbone}_face_encoding.npy".format(backbone=self.facenet_backbone),face_encodings)
         np.save("model_data/{backbone}_names.npy".format(backbone=self.facenet_backbone),names)
 
+    def export(self, file):
+        x = torch.randn(1, self.facenet_input_shape[2], self.facenet_input_shape[1], self.facenet_input_shape[0], requires_grad=True)
+        torch.onnx.export(self.facenet, x, file, opset_version=11)
+
     def face_feature(self, image):
         """计算人脸图特征值
         
